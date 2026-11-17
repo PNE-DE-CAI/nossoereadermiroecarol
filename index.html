@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#6d214f" />
+  <title>Nosso Livro - Miro & Caroline</title>
+
+  <!-- PDF.js: renderiza PDFs diretamente no navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Firebase: opcional, usado para sincronizacao em tempo real entre dois aparelhos -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root{
+      --bg:#fff8fb; --surface:#ffffff; --surface2:#f9edf3; --text:#30262c;
+      --muted:#7d6873; --primary:#8d315f; --primary2:#bf5d89; --accent:#efb7cd;
+      --miro:#235789; --caroline:#a83a67; --line:#ead7e0; --shadow:0 12px 35px rgba(71,27,49,.14);
+      --reader:#f3eee7; --readerText:#2d2926; --radius:18px;
+    }
+    [data-theme="dark"]{
+      --bg:#181217; --surface:#241b22; --surface2:#2f222c; --text:#f9edf3;
+      --muted:#c2aeb9; --primary:#e27eaa; --primary2:#f1a4c4; --accent:#653047;
+      --line:#473540; --shadow:0 12px 35px rgba(0,0,0,.35); --reader:#211d20; --readerText:#f3e9ee;
+    }
+    *{box-sizing:border-box} html,body{height:100%;margin:0}
+    body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+    button,input,textarea,select{font:inherit} button{cursor:pointer}
+    .app{height:100%;display:grid;grid-template-rows:auto 1fr}
+    header{min-height:68px;background:linear-gradient(115deg,#5e1740,#9a3b69);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 18px;box-shadow:0 4px 18px rgba(80,24,53,.25);z-index:20}
+    .brand{display:flex;align-items:center;gap:10px;min-width:210px}.heart-logo{width:48px;height:48px;border-radius:50%;background:#fff2;display:grid;place-items:center;overflow:hidden;border:2px solid #ffffff88;box-shadow:0 3px 12px #0003}.heart-logo img{width:100%;height:100%;object-fit:cover;display:block}
+    .brand h1{font-size:17px;margin:0}.brand small{opacity:.8}
+    .top-actions{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+    .btn{border:0;border-radius:12px;padding:10px 13px;background:var(--surface2);color:var(--text);font-weight:700;transition:.18s;display:inline-flex;gap:7px;align-items:center;justify-content:center}
+    .btn:hover{transform:translateY(-1px);filter:brightness(.98)}.btn.primary{background:var(--primary);color:white}.btn.ghost{background:#fff1;color:white;border:1px solid #ffffff35}.btn.danger{background:#a92b43;color:white}.btn.small{padding:7px 9px;font-size:12px}
+    .status{display:flex;gap:7px;align-items:center;font-size:12px;background:#fff1;padding:8px 10px;border-radius:999px}.dot{width:8px;height:8px;border-radius:50%;background:#ffc857}.dot.online{background:#55d187;box-shadow:0 0 0 4px #55d18725}
+    main{min-height:0;display:grid;grid-template-columns:270px minmax(320px,1fr) 350px}
+    aside{background:var(--surface);min-height:0;overflow:auto}.left{border-right:1px solid var(--line);padding:16px}.right{border-left:1px solid var(--line);display:grid;grid-template-rows:auto 1fr auto;min-height:0}
+    .section-title{font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:8px 0 10px}
+    .couple{display:grid;gap:9px}.profile{display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:14px;border:1px solid var(--line)}
+    .avatar{width:39px;height:39px;border-radius:50%;display:grid;place-items:center;color:white;font-weight:900;flex:0 0 auto;overflow:hidden;background-size:cover;background-position:center;border:2px solid var(--surface);box-shadow:0 2px 8px #0002}.avatar img{width:100%;height:100%;object-fit:cover;display:block}.avatar.miro{background:linear-gradient(135deg,#1f4d7a,#3c83bd)}.avatar.caroline{background:linear-gradient(135deg,#8e2d58,#dd739f)}
+    .profile strong{display:block;font-size:13px}.profile small{color:var(--muted)}.profile.active{outline:2px solid var(--primary)}
+    .progress-card{margin-top:14px;padding:13px;background:linear-gradient(135deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:16px}.progress-head{display:flex;justify-content:space-between;font-size:12px}.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}.fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary2));width:0%}
+    .nav-list{display:grid;gap:7px}.nav-btn{width:100%;border:0;background:transparent;color:var(--text);border-radius:11px;padding:10px 11px;text-align:left;display:flex;justify-content:space-between;align-items:center}.nav-btn:hover,.nav-btn.active{background:var(--surface2);color:var(--primary)}
+    .count{background:var(--accent);color:#6e2347;border-radius:999px;padding:2px 7px;font-size:11px}.book-info{font-size:12px;line-height:1.5;color:var(--muted);word-break:break-word;padding:10px;border:1px dashed var(--line);border-radius:12px}
+
+    .reader{background:var(--reader);min-height:0;display:grid;grid-template-rows:auto 1fr auto;position:relative}.reader-toolbar{padding:9px 12px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap}
+    .page-input{width:62px;text-align:center;border:1px solid var(--line);border-radius:9px;padding:7px;background:var(--surface);color:var(--text)}
+    .canvas-wrap{min-height:0;overflow:auto;display:grid;place-items:start center;padding:24px;position:relative}.paper{position:relative;box-shadow:0 8px 32px #0003;background:white;line-height:0}.paper canvas{max-width:none;display:block}.loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--reader);z-index:4}.loading-card{background:var(--surface);padding:22px;border-radius:18px;box-shadow:var(--shadow);text-align:center;max-width:320px}.spinner{width:32px;height:32px;border:4px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
+    .empty-reader{margin:auto;max-width:480px;text-align:center;padding:32px}.empty-reader .big{font-size:62px}.empty-reader h2{margin:8px}.empty-reader p{color:var(--muted);line-height:1.6}
+    .reader-footer{background:var(--surface);border-top:1px solid var(--line);padding:9px 14px;display:flex;align-items:center;gap:10px}.reader-footer .bar{flex:1;margin:0}.footer-label{font-size:12px;color:var(--muted);min-width:50px}
+
+    .tabs{display:flex;border-bottom:1px solid var(--line);padding:8px 8px 0;gap:4px}.tab{flex:1;border:0;background:transparent;color:var(--muted);font-weight:800;padding:11px 5px;border-radius:10px 10px 0 0}.tab.active{color:var(--primary);background:var(--surface2)}
+    .panel{overflow:auto;padding:14px;min-height:0}.feed{display:grid;gap:12px}.comment{border:1px solid var(--line);border-radius:15px;padding:11px;background:var(--surface2)}.comment-head{display:flex;align-items:center;gap:8px}.mini-avatar{width:28px;height:28px;font-size:11px}.comment-head .meta{font-size:11px;color:var(--muted);margin-left:auto}.comment p{margin:9px 0;white-space:pre-wrap;line-height:1.4;font-size:14px}.reaction-row{display:flex;gap:5px;flex-wrap:wrap}.reaction{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 8px;font-size:12px}.reaction.me{border-color:var(--primary);background:var(--accent)}
+    .composer{padding:12px;border-top:1px solid var(--line);background:var(--surface)}.composer textarea{width:100%;resize:none;min-height:66px;border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:13px;padding:10px;outline:none}.composer textarea:focus{border-color:var(--primary)}.composer-actions{display:flex;justify-content:space-between;gap:8px;margin-top:8px}.emoji-picker{display:flex;gap:4px}.emoji-btn{border:0;background:transparent;font-size:20px;padding:4px}
+    .chat-msg{max-width:88%;padding:9px 11px;border-radius:14px;background:var(--surface2);border:1px solid var(--line);font-size:13px;line-height:1.4}.chat-msg.mine{margin-left:auto;background:var(--accent)}.chat-msg small{display:block;color:var(--muted);margin-top:4px;font-size:10px}
+    .empty{color:var(--muted);text-align:center;padding:25px 12px;line-height:1.5}
+
+    .modal-backdrop{position:fixed;inset:0;background:#1d0716aa;backdrop-filter:blur(4px);z-index:100;display:none;place-items:center;padding:15px}.modal-backdrop.open{display:grid}.modal{background:var(--surface);width:min(680px,100%);max-height:92vh;overflow:auto;border-radius:22px;box-shadow:0 25px 80px #0007;padding:20px}.modal h2{margin-top:0}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:6px;margin-bottom:11px}.field label{font-size:12px;font-weight:800;color:var(--muted)}.field input,.field select{width:100%;border:1px solid var(--line);background:var(--surface2);color:var(--text);padding:10px;border-radius:10px}.hint{font-size:12px;color:var(--muted);line-height:1.5;background:var(--surface2);padding:10px;border-radius:11px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
+    .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,25px);background:#2c2027;color:white;padding:11px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:200;box-shadow:var(--shadow)}.toast.show{opacity:1;transform:translate(-50%,0)}
+    .mobile-only{display:none}.hidden{display:none!important}
+    @media(max-width:1050px){main{grid-template-columns:220px 1fr 320px}.left{padding:11px}.brand{min-width:auto}.brand small{display:none}}
+    @media(max-width:800px){body{overflow:hidden}header{padding:8px 10px}.brand h1{font-size:14px}.heart-logo{width:36px;height:36px}.top-actions .hide-mobile{display:none}.mobile-only{display:inline-flex}main{display:block;position:relative}.reader{height:calc(100vh - 60px)}aside{position:fixed;top:60px;bottom:0;width:min(88vw,360px);z-index:50;box-shadow:var(--shadow);transition:.25s}.left{left:0;transform:translateX(-110%)}.right{right:0;transform:translateX(110%)}.left.open,.right.open{transform:translateX(0)}.canvas-wrap{padding:12px}.reader-toolbar{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}.reader-toolbar .btn{white-space:nowrap}.grid2{grid-template-columns:1fr}}
+  </style>
+</head>
+<body data-theme="light">
+<div class="app">
+  <header>
+    <div class="brand"><div class="heart-logo"><img src="https://i.ibb.co/sJPKv9KQ/miro-e-carol.jpg" alt="Miro e Caroline" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentElement.textContent='💞';"></div><div><h1>Nosso Livro</h1><small>Miro Carvalho & Caroline Santos</small></div></div>
+    <div class="top-actions">
+      <button class="btn ghost mobile-only" id="openLeft">☰</button>
+      <span class="status"><span class="dot" id="syncDot"></span><span id="syncText">Modo local</span></span>
+      <button class="btn ghost hide-mobile" id="choosePdf">📖 Abrir PDF</button>
+      <button class="btn ghost" id="themeBtn" title="Alternar tema">🌙</button>
+      <button class="btn ghost" id="settingsBtn" title="Configurar sincronizacao">⚙️</button>
+      <button class="btn ghost mobile-only" id="openRight">💬</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="left" id="leftPanel">
+      <div class="section-title">Quem esta lendo?</div>
+      <div class="couple">
+        <button class="profile active" data-user="miro"><span class="avatar miro"><img src="https://i.ibb.co/4RR86SDt/MIRO.jpg" alt="Foto do perfil de Miro Carvalho" referrerpolicy="no-referrer" onerror="this.remove();this.parentElement.textContent='MC';"></span><span><strong>MIRO CARVALHO</strong><small id="miroStatus">perfil ativo</small></span></button>
+        <button class="profile" data-user="caroline"><span class="avatar caroline"><img src="https://i.ibb.co/cKZF5zGV/carol.png" alt="Foto do perfil de Caroline Santos" referrerpolicy="no-referrer" onerror="this.remove();this.parentElement.textContent='CS';"></span><span><strong>CAROLINE SANTOS</strong><small id="carolineStatus">toque para usar</small></span></button>
+      </div>
+      <div class="progress-card"><div class="progress-head"><strong>Leitura do casal</strong><span id="coupleProgress">0%</span></div><div class="bar"><div class="fill" id="coupleFill"></div></div><small style="color:var(--muted)" id="progressDetail">Abram o livro para comecar.</small></div>
+
+      <div class="section-title" style="margin-top:20px">Navegacao</div>
+      <div class="nav-list">
+        <button class="nav-btn active" data-view="page">📄 Pagina atual <span class="count" id="currentPageBadge">-</span></button>
+        <button class="nav-btn" id="favoritePage">♡ Favoritar pagina</button>
+        <button class="nav-btn" id="gotoLast">↩ Meu ultimo ponto</button>
+        <button class="nav-btn" id="showAllComments">💬 Todos os comentarios <span class="count" id="commentCount">0</span></button>
+        <button class="nav-btn" id="exportMemories">⬇ Exportar memorias</button>
+      </div>
+
+      <div class="section-title" style="margin-top:20px">Livro</div>
+      <div class="book-info"><strong id="bookTitle">Nenhum PDF aberto</strong><br><span id="bookPages">Escolha um arquivo PDF.</span><br><span id="roomLabel">Sala: local</span></div>
+      <input type="file" id="pdfInput" accept="application/pdf,.pdf" hidden />
+    </aside>
+
+    <section class="reader">
+      <div class="reader-toolbar">
+        <button class="btn small" id="prevPage">◀ Anterior</button>
+        <span style="font-size:12px">Pagina</span><input class="page-input" id="pageInput" type="number" min="1" value="1" /><span id="pageTotal" style="font-size:12px">de 0</span>
+        <button class="btn small" id="nextPage">Proxima ▶</button>
+        <button class="btn small" id="zoomOut">A−</button><span id="zoomLabel" style="font-size:12px">100%</span><button class="btn small" id="zoomIn">A+</button>
+        <button class="btn small" id="fitWidth">↔ Ajustar</button>
+        <button class="btn small mobile-only" id="choosePdfMobile">📖 PDF</button>
+      </div>
+      <div class="canvas-wrap" id="canvasWrap">
+        <div class="empty-reader" id="emptyReader"><div class="big">📚💗</div><h2>Uma leitura, duas pessoas</h2><p>Abra o PDF do livro. Cada pagina pode receber comentarios e reacoes de Miro e Caroline.</p><button class="btn primary" id="emptyOpen">Abrir o livro em PDF</button></div>
+        <div class="paper hidden" id="paper"><canvas id="pdfCanvas"></canvas></div>
+        <div class="loading hidden" id="loading"><div class="loading-card"><div class="spinner"></div><strong>Preparando a pagina...</strong></div></div>
+      </div>
+      <div class="reader-footer"><span class="footer-label" id="footerPage">Pagina -</span><div class="bar"><div class="fill" id="readingFill"></div></div><span class="footer-label" id="footerPercent">0%</span></div>
+    </section>
+
+    <aside class="right" id="rightPanel">
+      <div class="tabs"><button class="tab active" data-tab="comments">Comentarios</button><button class="tab" data-tab="chat">Recadinhos</button></div>
+      <div class="panel"><div class="feed" id="feed"></div></div>
+      <div class="composer">
+        <textarea id="messageText" maxlength="600" placeholder="Escreva sobre esta pagina..."></textarea>
+        <div class="composer-actions"><div class="emoji-picker"><button class="emoji-btn" data-emoji="❤️">❤️</button><button class="emoji-btn" data-emoji="😂">😂</button><button class="emoji-btn" data-emoji="😮">😮</button><button class="emoji-btn" data-emoji="🥺">🥺</button></div><button class="btn primary" id="sendMessage">Enviar</button></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="settingsModal"><div class="modal">
+  <h2>⚙️ Configuracao do e-reader</h2>
+  <p class="hint"><strong>Sem Firebase:</strong> comentarios ficam apenas neste aparelho. <strong>Com Firebase:</strong> Miro e Caroline veem comentarios, reacoes, chat e progresso em tempo real, usando a mesma Sala do Casal.</p>
+  <div class="grid2">
+    <div class="field"><label>Sala do casal</label><input id="roomIdInput" value="miro-caroline" /></div>
+    <div class="field"><label>Perfil deste aparelho</label><select id="profileSelect"><option value="miro">MIRO CARVALHO</option><option value="caroline">CAROLINE SANTOS</option></select></div>
+  </div>
+  <div class="field"><label>Firebase apiKey</label><input id="fbApiKey" placeholder="AIza..." /></div>
+  <div class="grid2"><div class="field"><label>authDomain</label><input id="fbAuthDomain" placeholder="projeto.firebaseapp.com" /></div><div class="field"><label>projectId</label><input id="fbProjectId" placeholder="nome-do-projeto" /></div></div>
+  <div class="grid2"><div class="field"><label>storageBucket</label><input id="fbStorageBucket" placeholder="projeto.firebasestorage.app" /></div><div class="field"><label>messagingSenderId</label><input id="fbMessagingSenderId" placeholder="000000000000" /></div></div>
+  <div class="field"><label>appId</label><input id="fbAppId" placeholder="1:...:web:..." /></div>
+  <p class="hint">No Firebase Console, ative <strong>Authentication &gt; Anonymous</strong> e crie o <strong>Cloud Firestore</strong>. O PDF nao e enviado: os dois aparelhos devem abrir o mesmo arquivo.</p>
+  <div class="modal-actions"><button class="btn" id="clearData">Limpar dados locais</button><button class="btn" id="closeSettings">Cancelar</button><button class="btn primary" id="saveSettings">Salvar e conectar</button></div>
+</div></div>
+
+<div class="modal-backdrop" id="allCommentsModal"><div class="modal"><h2>💬 Memorias da leitura</h2><div id="allCommentsList" class="feed"></div><div class="modal-actions"><button class="btn primary" id="closeAllComments">Fechar</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const PROFILES = {
+    miro:{name:'MIRO CARVALHO', initials:'MC', cls:'miro', photo:'https://i.ibb.co/4RR86SDt/MIRO.jpg'},
+    caroline:{name:'CAROLINE SANTOS', initials:'CS', cls:'caroline', photo:'https://i.ibb.co/cKZF5zGV/carol.png'}
+  };
+  const DEFAULT_PDF = 'Meu-Lado-Obscuro_-Serie-Ya-Brat-Lucy-Foster%20(1).pdf';
+  const DEFAULT_FIREBASE = {
+    roomId:'miro-caroline',
+    apiKey:'AIzaSyCJN14aVrfueJAxw9bCCwTfgINXzsIMOtY',
+    authDomain:'urecaieirasformacoes2026.firebaseapp.com',
+    projectId:'urecaieirasformacoes2026',
+    storageBucket:'urecaieirasformacoes2026.firebasestorage.app',
+    messagingSenderId:'890215987043',
+    appId:'1:890215987043:web:889386d4dfb35475ce0556'
+  };
+  const state = {
+    pdf:null, page:1, total:0, scale:1.2, rendering:false, pending:null,
+    user:localStorage.getItem('coupleUser') || 'miro', tab:'comments',
+    comments:[], chats:[], favorites:[], progress:{miro:1,caroline:1},
+    db:null, online:false, unsubscribers:[], fileName:'', pdfKey:'default'
+  };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const nowText = ts => new Date(ts?.toDate ? ts.toDate() : ts || Date.now()).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const id = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random().toString(16).slice(2));
+  function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2400)}
+  function key(n){return `coupleReader:${state.pdfKey}:${n}`}
+  function loadLocal(){state.comments=JSON.parse(localStorage.getItem(key('comments'))||'[]');state.chats=JSON.parse(localStorage.getItem(key('chats'))||'[]');state.favorites=JSON.parse(localStorage.getItem(key('favorites'))||'[]');state.progress=JSON.parse(localStorage.getItem(key('progress'))||'{"miro":1,"caroline":1}');renderAll()}
+  function saveLocal(){localStorage.setItem(key('comments'),JSON.stringify(state.comments));localStorage.setItem(key('chats'),JSON.stringify(state.chats));localStorage.setItem(key('favorites'),JSON.stringify(state.favorites));localStorage.setItem(key('progress'),JSON.stringify(state.progress))}
+
+  async function openPdf(source, fileName='Livro do casal.pdf'){
+    $('loading').classList.remove('hidden');
+    try{
+      state.pdf = await pdfjsLib.getDocument(source).promise; state.total=state.pdf.numPages; state.fileName=fileName;
+      state.pdfKey=(fileName.replace(/\W+/g,'-').toLowerCase()||'livro').slice(0,70);
+      state.page=Math.min(Math.max(Number(state.progress[state.user])||1,1),state.total);
+      $('bookTitle').textContent=fileName; $('bookPages').textContent=`${state.total} paginas`; $('pageTotal').textContent=`de ${state.total}`;
+      $('emptyReader').classList.add('hidden');$('paper').classList.remove('hidden');loadLocal();await renderPage();
+      toast('Livro aberto com sucesso.');
+    }catch(e){console.error(e);toast('Nao foi possivel abrir o PDF. Use o botao Abrir PDF.');}
+    finally{$('loading').classList.add('hidden')}
+  }
+  async function renderPage(){
+    if(!state.pdf)return;if(state.rendering){state.pending=state.page;return}state.rendering=true;$('loading').classList.remove('hidden');
+    try{
+      const page=await state.pdf.getPage(state.page);const viewport=page.getViewport({scale:state.scale});const canvas=$('pdfCanvas');const ctx=canvas.getContext('2d');
+      const ratio=window.devicePixelRatio||1;canvas.width=Math.floor(viewport.width*ratio);canvas.height=Math.floor(viewport.height*ratio);canvas.style.width=viewport.width+'px';canvas.style.height=viewport.height+'px';
+      await page.render({canvasContext:ctx,viewport,transform:ratio!==1?[ratio,0,0,ratio,0,0]:null}).promise;
+      state.progress[state.user]=Math.max(state.progress[state.user]||1,state.page);saveLocal();syncProgress();updateUI();renderFeed();
+    }catch(e){console.error(e);toast('Erro ao renderizar a pagina.')}finally{state.rendering=false;$('loading').classList.add('hidden');if(state.pending){state.page=state.pending;state.pending=null;renderPage()}}
+  }
+  function goPage(n){if(!state.pdf)return;state.page=Math.min(Math.max(Number(n)||1,1),state.total);renderPage();$('canvasWrap').scrollTop=0}
+  function updateUI(){
+    $('pageInput').value=state.page;$('currentPageBadge').textContent=state.pdf?state.page:'-';$('footerPage').textContent=state.pdf?`Pagina ${state.page}`:'Pagina -';
+    const pct=state.total?Math.round(state.page/state.total*100):0;$('readingFill').style.width=pct+'%';$('footerPercent').textContent=pct+'%';$('zoomLabel').textContent=Math.round(state.scale/1.2*100)+'%';
+    const a=state.total?Math.round((state.progress.miro||1)/state.total*100):0,b=state.total?Math.round((state.progress.caroline||1)/state.total*100):0,avg=Math.round((a+b)/2);$('coupleProgress').textContent=avg+'%';$('coupleFill').style.width=avg+'%';$('progressDetail').textContent=`Miro ${a}% • Caroline ${b}%`;
+    const fav=state.favorites.some(f=>f.page===state.page&&f.user===state.user);$('favoritePage').innerHTML=fav?'♥ Pagina favorita':'♡ Favoritar pagina';$('favoritePage').style.color=fav?'var(--caroline)':'';
+    $('commentCount').textContent=state.comments.length;$('roomLabel').textContent='Sala: '+(JSON.parse(localStorage.getItem('coupleSettings')||'{}').roomId||'local');
+  }
+  function setUser(u){state.user=u;localStorage.setItem('coupleUser',u);document.querySelectorAll('.profile').forEach(x=>x.classList.toggle('active',x.dataset.user===u));$('profileSelect').value=u;$('messageText').placeholder=state.tab==='comments'?`${PROFILES[u].name}, escreva sobre esta pagina...`:`Deixe um recadinho para ${PROFILES[u==='miro'?'caroline':'miro'].name}...`;updateUI();renderFeed();toast(`Perfil: ${PROFILES[u].name}`)}
+  function personHTML(u,mini=true){const p=PROFILES[u]||PROFILES.miro;return `<span class="avatar ${p.cls} ${mini?'mini-avatar':''}"><img src="${p.photo}" alt="Foto do perfil" referrerpolicy="no-referrer" onerror="this.remove();this.parentElement.textContent='${p.initials}'"></span><strong>${p.name}</strong>`}
+  function renderFeed(){
+    const feed=$('feed');if(state.tab==='comments'){
+      const list=state.comments.filter(c=>Number(c.page)===state.page).sort((a,b)=>(a.created||0)-(b.created||0));
+      feed.innerHTML=list.length?list.map(commentHTML).join(''):`<div class="empty">Ainda nao ha comentarios na pagina ${state.page}.<br>Seja a primeira pessoa a deixar uma lembranca.</div>`;
+    }else{
+      const list=[...state.chats].sort((a,b)=>(a.created||0)-(b.created||0));feed.innerHTML=list.length?list.map(c=>`<div class="chat-msg ${c.user===state.user?'mine':''}">${esc(c.text)}<small>${esc(PROFILES[c.user]?.name||c.user)} • ${nowText(c.created)}</small></div>`).join(''):'<div class="empty">Nenhum recadinho ainda.</div>';
+      setTimeout(()=>feed.parentElement.scrollTop=feed.parentElement.scrollHeight,0)
+    }
+  }
+  function commentHTML(c){const reacts=c.reactions||{};return `<article class="comment"><div class="comment-head">${personHTML(c.user)}<span class="meta">Pag. ${c.page} • ${nowText(c.created)}</span></div><p>${esc(c.text)}</p><div class="reaction-row">${['❤️','😂','😮','🥺','🔥'].map(e=>{const users=reacts[e]||[];return `<button class="reaction ${users.includes(state.user)?'me':''}" data-react="${e}" data-id="${c.id}">${e} ${users.length||''}</button>`}).join('')}${c.user===state.user?`<button class="reaction" data-delete="${c.id}">🗑</button>`:''}</div></article>`}
+  function renderAll(){updateUI();renderFeed()}
+
+  async function addMessage(){const text=$('messageText').value.trim();if(!text)return toast('Escreva uma mensagem primeiro.');const item={id:id(),user:state.user,text,created:Date.now(),page:state.page,reactions:{}};$('messageText').value='';
+    if(state.online){try{const col=state.tab==='comments'?'comments':'chats';await roomRef().collection(col).doc(item.id).set(item)}catch(e){toast('Falha ao enviar. Salvando localmente.');addLocal(item)}}else addLocal(item)
+  }
+  function addLocal(item){if(state.tab==='comments')state.comments.push(item);else state.chats.push(item);saveLocal();renderAll()}
+  async function react(commentId,emoji){const c=state.comments.find(x=>x.id===commentId);if(!c)return;c.reactions=c.reactions||{};const arr=c.reactions[emoji]||[];c.reactions[emoji]=arr.includes(state.user)?arr.filter(x=>x!==state.user):[...arr,state.user];
+    if(state.online){await roomRef().collection('comments').doc(commentId).update({reactions:c.reactions})}else{saveLocal();renderFeed()}}
+  async function deleteComment(commentId){if(!confirm('Excluir este comentario?'))return;if(state.online)await roomRef().collection('comments').doc(commentId).delete();else{state.comments=state.comments.filter(c=>c.id!==commentId);saveLocal();renderAll()}}
+
+  function roomRef(){const s=JSON.parse(localStorage.getItem('coupleSettings')||'{}');return state.db.collection('coupleReaders').doc(s.roomId||'miro-caroline')}
+  async function connectFirebase(settings){
+    state.unsubscribers.forEach(u=>u());state.unsubscribers=[];state.online=false;
+    if(!settings.apiKey||!settings.projectId){setSync(false);return}
+    try{
+      const config={apiKey:settings.apiKey,authDomain:settings.authDomain,projectId:settings.projectId,storageBucket:settings.storageBucket,messagingSenderId:settings.messagingSenderId,appId:settings.appId};
+      const app=firebase.apps.length?firebase.app():firebase.initializeApp(config);await app.auth().signInAnonymously();state.db=app.firestore();state.online=true;setSync(true);
+      const listen=(col,setter)=>roomRef().collection(col).onSnapshot(s=>{setter(s.docs.map(d=>d.data()));renderAll()});
+      state.unsubscribers.push(listen('comments',v=>state.comments=v));state.unsubscribers.push(listen('chats',v=>state.chats=v));
+      state.unsubscribers.push(roomRef().collection('state').doc('shared').onSnapshot(d=>{if(d.exists){const x=d.data();state.progress={...state.progress,...(x.progress||{})};state.favorites=x.favorites||[];renderAll()}}));
+      toast('Sincronizacao em tempo real ativada.');
+    }catch(e){console.error(e);setSync(false);toast('Nao foi possivel conectar ao Firebase. Verifique a configuracao.')}
+  }
+  function setSync(on){$('syncDot').classList.toggle('online',on);$('syncText').textContent=on?'Sincronizado':'Modo local'}
+  async function syncProgress(){if(!state.online)return;try{await roomRef().collection('state').doc('shared').set({progress:state.progress,favorites:state.favorites,updated:Date.now()},{merge:true})}catch(e){console.warn(e)}}
+
+  function toggleFavorite(){const i=state.favorites.findIndex(f=>f.page===state.page&&f.user===state.user);if(i>=0)state.favorites.splice(i,1);else state.favorites.push({page:state.page,user:state.user,created:Date.now()});saveLocal();syncProgress();updateUI()}
+  function showAllComments(){const list=[...state.comments].sort((a,b)=>a.page-b.page||a.created-b.created);$('allCommentsList').innerHTML=list.length?list.map(commentHTML).join(''):'<div class="empty">Ainda nao existem comentarios.</div>';$('allCommentsModal').classList.add('open')}
+  function exportMemories(){
+    const lines=[`NOSSO LIVRO - MIRO CARVALHO & CAROLINE SANTOS`,`Livro: ${state.fileName||'Livro do casal'}`,`Exportado em: ${new Date().toLocaleString('pt-BR')}`,'',...state.comments.sort((a,b)=>a.page-b.page).flatMap(c=>[`Pagina ${c.page} - ${PROFILES[c.user]?.name||c.user} - ${nowText(c.created)}`,c.text,`Reacoes: ${Object.entries(c.reactions||{}).map(([e,u])=>e+' '+u.length).join(' | ')||'nenhuma'}`,''])];
+    const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='memorias-da-leitura-miro-e-caroline.txt';a.click();URL.revokeObjectURL(a.href);toast('Memorias exportadas.')
+  }
+
+  function openSettings(){const s={...DEFAULT_FIREBASE,...JSON.parse(localStorage.getItem('coupleSettings')||'{}')};$('roomIdInput').value=s.roomId||'miro-caroline';$('profileSelect').value=state.user;$('fbApiKey').value=s.apiKey||'';$('fbAuthDomain').value=s.authDomain||'';$('fbProjectId').value=s.projectId||'';$('fbStorageBucket').value=s.storageBucket||'';$('fbMessagingSenderId').value=s.messagingSenderId||'';$('fbAppId').value=s.appId||'';$('settingsModal').classList.add('open')}
+  function saveSettings(){const s={roomId:$('roomIdInput').value.trim()||'miro-caroline',apiKey:$('fbApiKey').value.trim(),authDomain:$('fbAuthDomain').value.trim(),projectId:$('fbProjectId').value.trim(),storageBucket:$('fbStorageBucket').value.trim(),messagingSenderId:$('fbMessagingSenderId').value.trim(),appId:$('fbAppId').value.trim()};localStorage.setItem('coupleSettings',JSON.stringify(s));setUser($('profileSelect').value);$('settingsModal').classList.remove('open');connectFirebase(s);updateUI()}
+  function choosePdf(){ $('pdfInput').click() }
+
+  $('choosePdf').onclick=choosePdf;$('choosePdfMobile').onclick=choosePdf;$('emptyOpen').onclick=choosePdf;
+  // FileReader is used separately for broad browser compatibility.
+  $('pdfInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>openPdf({data:new Uint8Array(r.result)},f.name);r.readAsArrayBuffer(f)},{capture:true});
+  $('prevPage').onclick=()=>goPage(state.page-1);$('nextPage').onclick=()=>goPage(state.page+1);$('pageInput').onchange=e=>goPage(e.target.value);
+  $('zoomIn').onclick=()=>{state.scale=Math.min(state.scale+.15,3);renderPage()};$('zoomOut').onclick=()=>{state.scale=Math.max(state.scale-.15,.45);renderPage()};
+  $('fitWidth').onclick=async()=>{if(!state.pdf)return;const p=await state.pdf.getPage(state.page),v=p.getViewport({scale:1});state.scale=Math.max(.45,($('canvasWrap').clientWidth-36)/v.width);renderPage()};
+  document.querySelectorAll('.profile').forEach(x=>x.onclick=()=>setUser(x.dataset.user));
+  document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{state.tab=x.dataset.tab;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===x));setUser(state.user)});
+  $('sendMessage').onclick=addMessage;$('messageText').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addMessage()}};
+  document.querySelectorAll('.emoji-btn').forEach(x=>x.onclick=()=>{$('messageText').value+=x.dataset.emoji;$('messageText').focus()});
+  $('feed').onclick=e=>{const r=e.target.closest('[data-react]'),d=e.target.closest('[data-delete]');if(r)react(r.dataset.id,r.dataset.react);if(d)deleteComment(d.dataset.delete)};
+  $('allCommentsList').onclick=e=>{const r=e.target.closest('[data-react]'),d=e.target.closest('[data-delete]');if(r)react(r.dataset.id,r.dataset.react);if(d)deleteComment(d.dataset.delete)};
+  $('favoritePage').onclick=toggleFavorite;$('gotoLast').onclick=()=>goPage(state.progress[state.user]||1);$('showAllComments').onclick=showAllComments;$('exportMemories').onclick=exportMemories;
+  $('settingsBtn').onclick=openSettings;$('closeSettings').onclick=()=>$('settingsModal').classList.remove('open');$('saveSettings').onclick=saveSettings;$('closeAllComments').onclick=()=>$('allCommentsModal').classList.remove('open');
+  $('clearData').onclick=()=>{if(confirm('Apagar comentarios, recados, favoritos e progresso salvos neste navegador?')){Object.keys(localStorage).filter(k=>k.startsWith('coupleReader:')).forEach(k=>localStorage.removeItem(k));state.comments=[];state.chats=[];state.favorites=[];state.progress={miro:1,caroline:1};renderAll();toast('Dados locais apagados.')}};
+  $('themeBtn').onclick=()=>{const next=document.body.dataset.theme==='dark'?'light':'dark';document.body.dataset.theme=next;localStorage.setItem('coupleTheme',next);$('themeBtn').textContent=next==='dark'?'☀️':'🌙'};
+  $('openLeft').onclick=()=>{$('leftPanel').classList.toggle('open');$('rightPanel').classList.remove('open')};$('openRight').onclick=()=>{$('rightPanel').classList.toggle('open');$('leftPanel').classList.remove('open')};
+  document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;if(e.key==='ArrowRight')goPage(state.page+1);if(e.key==='ArrowLeft')goPage(state.page-1)});
+  window.addEventListener('beforeunload',saveLocal);
+
+  const theme=localStorage.getItem('coupleTheme')||'light';document.body.dataset.theme=theme;$('themeBtn').textContent=theme==='dark'?'☀️':'🌙';setUser(state.user);loadLocal();
+  const savedSettings=JSON.parse(localStorage.getItem('coupleSettings')||'{}');
+  const settings={...DEFAULT_FIREBASE,...savedSettings};
+  if(!localStorage.getItem('coupleSettings')) localStorage.setItem('coupleSettings',JSON.stringify(settings));
+  connectFirebase(settings);
+  // Tenta abrir automaticamente o PDF quando o HTML e o livro estao na mesma pasta.
+  fetch(DEFAULT_PDF,{method:'HEAD'}).then(r=>{if(r.ok)return openPdf(DEFAULT_PDF,'Meu Lado Obscuro - Lucy Foster.pdf')}).catch(()=>{});
+})();
+</script>
+</body>
+</html>
