@@ -2,6 +2,13 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <meta name="theme-color" content="#6d214f">
+<meta name="application-name" content="Nosso Livro">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nosso Livro">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#6d214f" />
   <title>Nosso Livro - Miro & Caroline</title>
@@ -288,6 +295,11 @@
   // Tenta abrir automaticamente o PDF quando o HTML e o livro estao na mesma pasta.
   fetch(DEFAULT_PDF,{method:'HEAD'}).then(r=>{if(r.ok)return openPdf(DEFAULT_PDF,'Meu Lado Obscuro - Lucy Foster.pdf')}).catch(()=>{});
 })();
+</script>
+  <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
+}
 </script>
 </body>
 </html>
